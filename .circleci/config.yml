@@ -1,26 +1,27 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
-
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+  build:
     docker:
-      - image: cimg/base:stable
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+      - image: circleci/node:10.16.3
     steps:
       - checkout
-      - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
-
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+      - run: docker-compose build
+      - run: docker-compose up -d
+  deploy:
+    docker:
+      - image: circleci/node:10.16.3
+    steps:
+      - run: |
+          echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+          docker push myregistry/myimage:latest
+      - run: |
+          ssh -o StrictHostKeyChecking=no myuser@myserver "docker pull myregistry/myimage:latest"
+          ssh -o StrictHostKeyChecking=no myuser@myserver "docker-compose -f /path/to/docker-compose.yml up -d"
 workflows:
-  say-hello-workflow:
+  version: 2
+  build-and-deploy:
     jobs:
-      - say-hello
+      - build
+      - deploy:
+          requires:
+            - build
