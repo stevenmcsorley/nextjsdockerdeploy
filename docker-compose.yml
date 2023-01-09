@@ -1,0 +1,14 @@
+
+version: '3'
+services:
+  nextjs:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.${APP_ENV}
+    environment:
+      - APP_ENV=${APP_ENV}
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    command: npm run dev
